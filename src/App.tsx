@@ -1,18 +1,48 @@
-import { Canvas } from "@react-three/fiber";
+import { useState, type FC } from 'react';
 
-const App = () => {
+import Game from './components/Game/Game';
+import { useWebSocket } from './context/WebSocketContext';
+
+const App: FC = () => {
+  const { connectWebSocket } = useWebSocket();
+  const [matchId, setMatchId] = useState('');
+  const [playerId, setPlayerId] = useState('');
+  const [connected, setConnected] = useState(false);
+
+  const handleConnect = () => {
+    connectWebSocket(matchId, playerId);
+    setConnected(true);
+  };
+
   return (
-    <>
-      <Canvas style={{ width: "100%", height: "100%" }}>
-        <ambientLight />
-        <pointLight position={[10, 10, 10]} />
-
-        <mesh>
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="hotpink" />
-        </mesh>
-      </Canvas>
-    </>
+    <div style={{ height: '100%', width: '100%' }}>
+      {!connected ? (
+        <div>
+          <h1>WebSocket Game</h1>
+          <label>
+            Match ID:
+            <input
+              type="text"
+              value={matchId}
+              onChange={(event) => setMatchId(event.target.value)}
+            />
+          </label>
+          <br />
+          <label>
+            Player ID:
+            <input
+              type="text"
+              value={playerId}
+              onChange={(event) => setPlayerId(event.target.value)}
+            />
+          </label>
+          <br />
+          <button onClick={handleConnect}>Connect</button>
+        </div>
+      ) : (
+        <Game playerId={playerId} />
+      )}
+    </div>
   );
 };
 
