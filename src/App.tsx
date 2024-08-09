@@ -2,6 +2,7 @@ import { useState, type FC } from 'react';
 
 import Game from './components/Game/Game';
 import { useWebSocket } from './context/WebSocketContext';
+import ThreeCanvas from './layouts/ThreeCanvas';
 
 const App: FC = () => {
   const { connectWebSocket } = useWebSocket();
@@ -40,7 +41,9 @@ const App: FC = () => {
           <button onClick={handleConnect}>Connect</button>
         </div>
       ) : (
-        <Game playerId={playerId} />
+        <ThreeCanvas>
+          <Game playerId={playerId} />
+        </ThreeCanvas>
       )}
     </div>
   );
