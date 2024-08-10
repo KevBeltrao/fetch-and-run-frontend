@@ -46,6 +46,7 @@ const useHandleWebsocketMessage = ({
     if (!socket) return;
 
     const handleMessage = (event: MessageEvent) => {
+      console.log(event.data);
       const message = JSON.parse(event.data);
 
       if (isUpdateStateMessage(message)) {

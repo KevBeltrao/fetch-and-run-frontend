@@ -1,34 +1,73 @@
-import { useEffect, useState } from 'react';
+import type { RapierRigidBody } from '@react-three/rapier';
+import {
+  useEffect,
+  useState,
+  type MutableRefObject,
+  type RefObject,
+} from 'react';
 
-export const MOVE_OPTIONS = {
+export const RUNNING_OPTIONS = {
   LEFT: 'LEFT',
   RIGHT: 'RIGHT',
   STOP: 'STOP',
 } as const;
 
-export type MoveOptions = (typeof MOVE_OPTIONS)[keyof typeof MOVE_OPTIONS];
+export type RunningOptions =
+  (typeof RUNNING_OPTIONS)[keyof typeof RUNNING_OPTIONS];
+export interface MoveOptions {
+  running: RunningOptions;
+}
 
-const useMoveState = () => {
-  const [moveState, setMoveState] = useState<MoveOptions>(MOVE_OPTIONS.STOP);
+interface UseMoveStateProps {
+  rigidBodyRef: RefObject<RapierRigidBody>;
+  isOnGround: MutableRefObject<boolean>;
+}
+
+const useMoveState = ({ rigidBodyRef, isOnGround }: UseMoveStateProps) => {
+  const [moveState, setMoveState] = useState<MoveOptions>({
+    running: RUNNING_OPTIONS.STOP,
+  });
 
   useEffect(() => {
+    const runningCommands: Record<string, RunningOptions> = {
+      a: RUNNING_OPTIONS.LEFT,
+      arrowleft: RUNNING_OPTIONS.LEFT,
+      d: RUNNING_OPTIONS.RIGHT,
+      arrowright: RUNNING_OPTIONS.RIGHT,
+    } as const;
+
+    const jumpCommands: Record<string, boolean> = {
+      w: true,
+      arrowup: true,
+      ' ': true,
+    } as const;
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'a') {
-        setMoveState(MOVE_OPTIONS.LEFT);
+      const key = event.key.toLowerCase();
+
+      if (key in runningCommands) {
+        return setMoveState((prevState) => ({
+          ...prevState,
+          running: runningCommands[key],
+        }));
       }
 
-      if (event.key === 'd') {
-        setMoveState(MOVE_OPTIONS.RIGHT);
+      if (key in jumpCommands && rigidBodyRef.current && isOnGround.current) {
+        rigidBodyRef.current.applyImpulse({ x: 0, y: 0.5, z: 0 }, true);
       }
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.key === 'a' && moveState === MOVE_OPTIONS.LEFT) {
-        setMoveState(MOVE_OPTIONS.STOP);
-      }
+      const key = event.key.toLowerCase();
 
-      if (event.key === 'd' && moveState === MOVE_OPTIONS.RIGHT) {
-        setMoveState(MOVE_OPTIONS.STOP);
+      if (
+        key in runningCommands &&
+        moveState.running === runningCommands[key]
+      ) {
+        setMoveState((prevState) => ({
+          ...prevState,
+          running: RUNNING_OPTIONS.STOP,
+        }));
       }
     };
 
@@ -39,9 +78,9 @@ const useMoveState = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [moveState]);
+  }, [isOnGround, moveState, rigidBodyRef]);
 
-  return moveState;
+  return { moveState, setMoveState };
 };
 
 export default useMoveState;
