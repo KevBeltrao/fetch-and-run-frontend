@@ -1,3 +1,4 @@
+import { Physics } from '@react-three/rapier';
 import { useState, type FC } from 'react';
 
 import Game from './components/Game/Game';
@@ -42,7 +43,9 @@ const App: FC = () => {
         </div>
       ) : (
         <ThreeCanvas>
-          <Game playerId={playerId} />
+          <Physics>
+            <Game playerId={playerId} />
+          </Physics>
         </ThreeCanvas>
       )}
     </div>

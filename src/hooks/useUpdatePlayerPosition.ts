@@ -1,16 +1,17 @@
-import { type MeshProps, useFrame } from '@react-three/fiber';
-import { useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { useRef, type RefObject } from 'react';
+import * as THREE from 'three';
 
 import { useWebSocket } from '../context/WebSocketContext';
 
-import { MOVE_OPTIONS, type MoveOptions } from './useMoveState';
+import { RUNNING_OPTIONS, type MoveOptions } from './useMoveState';
 
 const TWENTY_FPS_INTERVAL = 1 / 20;
 
 interface UseUpdatePlayerPositionProps {
   playerId: string;
   moveState: MoveOptions;
-  playerRef: React.MutableRefObject<MeshProps | null>;
+  playerRef: RefObject<THREE.Mesh | null>;
 }
 
 const useUpdatePlayerPosition = ({
@@ -24,13 +25,17 @@ const useUpdatePlayerPosition = ({
   useFrame(({ clock }) => {
     if (!playerRef.current) return;
 
-    const step = 0.1;
+    const step = 0.01;
     let { x } = playerRef.current.position;
     const { y } = playerRef.current.position;
 
-    if (moveState === MOVE_OPTIONS.LEFT) {
+    const worldPosition = new THREE.Vector3();
+    playerRef.current?.getWorldPosition(worldPosition);
+    const { y: trueY } = worldPosition;
+
+    if (moveState.running === RUNNING_OPTIONS.LEFT) {
       x -= step;
-    } else if (moveState === MOVE_OPTIONS.RIGHT) {
+    } else if (moveState.running === RUNNING_OPTIONS.RIGHT) {
       x += step;
     }
 
@@ -46,7 +51,7 @@ const useUpdatePlayerPosition = ({
       payload: {
         playerId,
         x,
-        y,
+        y: trueY,
       },
     });
     socket?.send(moveMessage);

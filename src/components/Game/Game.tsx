@@ -1,8 +1,9 @@
-import { type MeshProps } from '@react-three/fiber';
-import { type FC, useRef, useState } from 'react';
+import { RigidBody, type RapierRigidBody } from '@react-three/rapier';
+import { useRef, useState, type FC } from 'react';
+import { type Mesh } from 'three';
 
-import useMoveState from '../../hooks/useMoveState';
 import useHandleWebsocketMessage from '../../hooks/useHandleWebsocketMessage';
+import useMoveState from '../../hooks/useMoveState';
 import useUpdatePlayerPosition from '../../hooks/useUpdatePlayerPosition';
 
 import Player from './components/Player';
@@ -16,11 +17,17 @@ export type Players = Record<string, { x: number; y: number; color: string }>;
 const Game: FC<GameProps> = ({ playerId }) => {
   const [players, setPlayers] = useState<Players>({});
 
-  const playerRef = useRef<MeshProps>(null);
+  const playerRef = useRef<Mesh>(null);
+  const rigidBodyRef = useRef<RapierRigidBody>(null);
+  const isOnGround = useRef(true);
 
-  const moveState = useMoveState();
+  const { moveState } = useMoveState({ rigidBodyRef, isOnGround });
 
-  useUpdatePlayerPosition({ playerRef, playerId, moveState });
+  useUpdatePlayerPosition({
+    playerRef,
+    playerId,
+    moveState,
+  });
   useHandleWebsocketMessage({ playerId, setPlayers });
 
   return (
@@ -32,7 +39,31 @@ const Game: FC<GameProps> = ({ playerId }) => {
           color={players[id].color}
         />
       ))}
-      <Player ref={playerRef} position={[0, 0, 0]} color="red" />
+
+      <RigidBody
+        restitution={0}
+        ref={rigidBodyRef}
+        lockRotations
+        onCollisionEnter={({ other }) => {
+          if (other.rigidBodyObject?.name === 'ground') {
+            isOnGround.current = true;
+          }
+        }}
+        onCollisionExit={({ other }) => {
+          if (other.rigidBodyObject?.name === 'ground') {
+            isOnGround.current = false;
+          }
+        }}
+      >
+        <Player ref={playerRef} position={[0, 0, 0]} color="red" />
+      </RigidBody>
+
+      <RigidBody name="ground" type="fixed" colliders="trimesh">
+        <mesh position={[0, -1, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <boxGeometry args={[15, 6, 0.3]} />
+          <meshBasicMaterial color="blue" />
+        </mesh>
+      </RigidBody>
 
       <ambientLight />
       <pointLight position={[10, 10, 10]} />
