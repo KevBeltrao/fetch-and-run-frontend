@@ -1,5 +1,6 @@
 import { useFrame } from '@react-three/fiber';
-import { useRef, type RefObject } from 'react';
+import { type RapierRigidBody } from '@react-three/rapier';
+import { useRef, type MutableRefObject, type RefObject } from 'react';
 import * as THREE from 'three';
 
 import { useWebSocket } from '../context/WebSocketContext';
@@ -11,47 +12,60 @@ const TWENTY_FPS_INTERVAL = 1 / 20;
 interface UseUpdatePlayerPositionProps {
   playerId: string;
   moveState: MoveOptions;
-  playerRef: RefObject<THREE.Mesh | null>;
+  rigidBodyRef: RefObject<RapierRigidBody>;
+  isOnGround: MutableRefObject<boolean>;
 }
 
 const useUpdatePlayerPosition = ({
-  playerRef,
   playerId,
   moveState,
+  rigidBodyRef,
+  isOnGround,
 }: UseUpdatePlayerPositionProps) => {
   const lastTimeRef = useRef(0);
   const { socket } = useWebSocket();
 
   useFrame(({ clock }) => {
-    if (!playerRef.current) return;
+    if (!rigidBodyRef.current) return;
 
-    const step = 0.01;
-    let { x } = playerRef.current.position;
-    const { y } = playerRef.current.position;
+    const speed = 1;
+    const jumpStrength = 5;
 
-    const worldPosition = new THREE.Vector3();
-    playerRef.current?.getWorldPosition(worldPosition);
-    const { y: trueY } = worldPosition;
+    const velocity = { x: 0, y: 0, z: 0 };
 
     if (moveState.running === RUNNING_OPTIONS.LEFT) {
-      x -= step;
+      velocity.x = -speed;
     } else if (moveState.running === RUNNING_OPTIONS.RIGHT) {
-      x += step;
+      velocity.x = speed;
+    } else if (moveState.running === RUNNING_OPTIONS.STOP) {
+      velocity.x = 0;
     }
 
-    playerRef.current.position.set(x, y, 0);
+    if (moveState.isJumping && isOnGround.current) {
+      velocity.y = jumpStrength;
+    } else {
+      const currentVelocity = rigidBodyRef.current.linvel();
+      velocity.y = currentVelocity.y;
+    }
+
+    rigidBodyRef.current.setLinvel(
+      new THREE.Vector3(velocity.x, velocity.y, velocity.z),
+      true,
+    );
 
     const elapsedTime = clock.getElapsedTime();
     const timeSinceLastCall = elapsedTime - lastTimeRef.current;
 
     if (timeSinceLastCall < TWENTY_FPS_INTERVAL) return;
 
+    const { x, y } = rigidBodyRef.current.translation();
+
     const moveMessage = JSON.stringify({
       type: 'playerMove',
       payload: {
         playerId,
         x,
-        y: trueY,
+        y,
       },
     });
     socket?.send(moveMessage);

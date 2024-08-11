@@ -16,6 +16,7 @@ export type RunningOptions =
   (typeof RUNNING_OPTIONS)[keyof typeof RUNNING_OPTIONS];
 export interface MoveOptions {
   running: RunningOptions;
+  isJumping: boolean;
 }
 
 interface UseMoveStateProps {
@@ -26,6 +27,7 @@ interface UseMoveStateProps {
 const useMoveState = ({ rigidBodyRef, isOnGround }: UseMoveStateProps) => {
   const [moveState, setMoveState] = useState<MoveOptions>({
     running: RUNNING_OPTIONS.STOP,
+    isJumping: false,
   });
 
   useEffect(() => {
@@ -52,8 +54,11 @@ const useMoveState = ({ rigidBodyRef, isOnGround }: UseMoveStateProps) => {
         }));
       }
 
-      if (key in jumpCommands && rigidBodyRef.current && isOnGround.current) {
-        rigidBodyRef.current.applyImpulse({ x: 0, y: 0.5, z: 0 }, true);
+      if (key in jumpCommands && moveState.isJumping === false) {
+        setMoveState((prevState) => ({
+          ...prevState,
+          isJumping: true,
+        }));
       }
     };
 
@@ -69,14 +74,27 @@ const useMoveState = ({ rigidBodyRef, isOnGround }: UseMoveStateProps) => {
           running: RUNNING_OPTIONS.STOP,
         }));
       }
+
+      if (key in jumpCommands) {
+        setMoveState((prevState) => ({
+          ...prevState,
+          isJumping: false,
+        }));
+      }
+    };
+
+    const handleBlur = () => {
+      setMoveState({ running: RUNNING_OPTIONS.STOP, isJumping: false });
     };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleBlur);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
     };
   }, [isOnGround, moveState, rigidBodyRef]);
 
