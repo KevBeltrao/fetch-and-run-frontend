@@ -5,27 +5,36 @@ import { useWebSocket } from '../context/WebSocketContext';
 
 interface UpdateStateMessage {
   type: 'updateState';
+  payload: Record<string, { X: number; Y: number }>;
+}
+
+interface PlayerLeaveMessage {
+  type: 'playerLeave';
   payload: {
-    Players: Record<string, { X: number; Y: number }>;
+    playerId: string;
   };
 }
 
-type UpdateStateMessagePlayer =
-  UpdateStateMessage['payload']['Players'][string];
+type UpdateStateMessagePlayer = UpdateStateMessage['payload'][string];
 
 const isUpdateStateMessage = (
   message: unknown,
 ): message is UpdateStateMessage => {
-  if (typeof message !== 'object' || message === null) return false;
-  if (!('type' in message)) return false;
-  if (!('payload' in message)) return false;
-  if (typeof message.payload !== 'object' || message.payload === null)
-    return false;
-  if (!('Players' in message.payload)) return false;
+  if ((message as UpdateStateMessage).type !== 'updateState') return false;
   if (
-    typeof message.payload.Players !== 'object' ||
-    message.payload.Players === null
+    typeof (message as UpdateStateMessage).payload !== 'object' ||
+    (message as UpdateStateMessage).payload === null
   )
+    return false;
+
+  return true;
+};
+
+const isPlayerLeaveMessage = (
+  message: unknown,
+): message is PlayerLeaveMessage => {
+  if ((message as PlayerLeaveMessage).type !== 'playerLeave') return false;
+  if (typeof (message as PlayerLeaveMessage).payload?.playerId !== 'string')
     return false;
 
   return true;
@@ -46,26 +55,34 @@ const useHandleWebsocketMessage = ({
     if (!socket) return;
 
     const handleMessage = (event: MessageEvent) => {
-      console.log(event.data);
       const message = JSON.parse(event.data);
 
       if (isUpdateStateMessage(message)) {
-        setPlayers((prevPlayers) =>
-          Object.entries<UpdateStateMessagePlayer>(
-            message.payload.Players,
-          ).reduce((acc, [id, player]) => {
-            if (id === playerId) return acc;
+        return setPlayers((prevPlayers) =>
+          Object.entries<UpdateStateMessagePlayer>(message.payload).reduce(
+            (acc, [id, player]) => {
+              if (id === playerId) return acc;
 
-            return {
-              ...acc,
-              [id]: {
-                x: player.X,
-                y: player.Y,
-                color: 'blue',
-              },
-            };
-          }, prevPlayers),
+              return {
+                ...acc,
+                [id]: {
+                  x: player.X,
+                  y: player.Y,
+                  color: 'blue',
+                },
+              };
+            },
+            prevPlayers,
+          ),
         );
+      }
+
+      if (isPlayerLeaveMessage(message)) {
+        return setPlayers((prevPlayers) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { [message.payload.playerId]: _, ...rest } = prevPlayers;
+          return rest;
+        });
       }
     };
 
