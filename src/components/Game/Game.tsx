@@ -1,6 +1,5 @@
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier';
 import { useRef, useState, type FC } from 'react';
-import { type Mesh } from 'three';
 
 import useHandleWebsocketMessage from '../../hooks/useHandleWebsocketMessage';
 import useMoveState from '../../hooks/useMoveState';
@@ -17,16 +16,16 @@ export type Players = Record<string, { x: number; y: number; color: string }>;
 const Game: FC<GameProps> = ({ playerId }) => {
   const [players, setPlayers] = useState<Players>({});
 
-  const playerRef = useRef<Mesh>(null);
   const rigidBodyRef = useRef<RapierRigidBody>(null);
   const isOnGround = useRef(true);
 
   const { moveState } = useMoveState({ rigidBodyRef, isOnGround });
 
   useUpdatePlayerPosition({
-    playerRef,
+    rigidBodyRef,
     playerId,
     moveState,
+    isOnGround,
   });
   useHandleWebsocketMessage({ playerId, setPlayers });
 
@@ -43,6 +42,7 @@ const Game: FC<GameProps> = ({ playerId }) => {
       <RigidBody
         restitution={0}
         ref={rigidBodyRef}
+        colliders="cuboid"
         lockRotations
         onCollisionEnter={({ other }) => {
           if (other.rigidBodyObject?.name === 'ground') {
@@ -55,10 +55,17 @@ const Game: FC<GameProps> = ({ playerId }) => {
           }
         }}
       >
-        <Player ref={playerRef} position={[0, 0, 0]} color="red" />
+        <Player position={[0, 0, 0]} color="red" />
       </RigidBody>
 
-      <RigidBody name="ground" type="fixed" colliders="trimesh">
+      <RigidBody name="ground" type="fixed" colliders="cuboid">
+        <mesh position={[2, 0, 0]}>
+          <boxGeometry args={[0.5, 0.5, 0.5]} />
+          <meshBasicMaterial color="purple" />
+        </mesh>
+      </RigidBody>
+
+      <RigidBody name="ground" type="fixed" colliders="cuboid">
         <mesh position={[0, -1, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <boxGeometry args={[15, 6, 0.3]} />
           <meshBasicMaterial color="blue" />
