@@ -5,6 +5,7 @@ import useHandleWebsocketMessage from '../../hooks/useHandleWebsocketMessage';
 import useMoveState from '../../hooks/useMoveState';
 import useUpdatePlayerPosition from '../../hooks/useUpdatePlayerPosition';
 
+import Box from './components/Box';
 import Player from './components/Player';
 
 interface GameProps {
@@ -58,12 +59,7 @@ const Game: FC<GameProps> = ({ playerId }) => {
         <Player position={[0, 0, 0]} color="red" />
       </RigidBody>
 
-      <RigidBody name="ground" type="fixed" colliders="cuboid">
-        <mesh position={[2, 0, 0]}>
-          <boxGeometry args={[0.5, 0.5, 0.5]} />
-          <meshBasicMaterial color="purple" />
-        </mesh>
-      </RigidBody>
+      <Box position={[2, 0, 0]} />
 
       <RigidBody name="ground" type="fixed" colliders="cuboid">
         <mesh position={[0, -1, 0]} rotation={[Math.PI / 2, 0, 0]}>
