@@ -6,8 +6,11 @@ import { useWebSocket } from './context/WebSocketContext';
 import ThreeCanvas from './layouts/ThreeCanvas';
 
 const App: FC = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const matchIdInitialValue = urlParams.get('matchId');
+
   const { connectWebSocket } = useWebSocket();
-  const [matchId, setMatchId] = useState('');
+  const [matchId, setMatchId] = useState(matchIdInitialValue ?? '');
   const [playerId, setPlayerId] = useState('');
   const [connected, setConnected] = useState(false);
 
