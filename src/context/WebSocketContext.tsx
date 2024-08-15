@@ -21,7 +21,7 @@ const WebSocketProvider: FC<PropsWithChildren> = ({ children }) => {
     playerId,
   ) => {
     const websocket = new WebSocket(
-      `ws://localhost:8000/websocket?matchId=${matchId}`,
+      `${import.meta.env.VITE_API_URL}/websocket?matchId=${matchId}`,
     );
 
     websocket.onopen = () => {
